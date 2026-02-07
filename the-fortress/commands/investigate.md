@@ -42,7 +42,6 @@ Check if `phases.investigate.status === "in_progress"` in STATE.json. If so, thi
 ### Step 1: Load Configuration
 
 Read `.audit/STATE.json` for:
-- `config.batch_size` — agents per batch
 - `config.tier` — affects coverage verification
 
 Read `.audit/STRATEGIES.md` and parse all strategies.
@@ -54,58 +53,60 @@ Sort strategies into priority order:
 2. **Tier 2** (HIGH potential) — investigate second
 3. **Tier 3** (MEDIUM-LOW potential) — investigate last
 
-Group into batches of `BATCH_SIZE`.
+Group into batches of **5** (max agents per response to avoid prompt-too-long errors).
 
-### Step 3: Load Investigator Template
+### Step 3: Locate Skill Files
 
-Read the hypothesis investigator agent template:
+Find the investigator agent template path (do NOT read/inline it — agents read it themselves):
+
 ```bash
 find ~/.claude -name "hypothesis-investigator.md" -path "*/the-fortress/agents/*" 2>/dev/null | head -1
 ```
 
-Read `.audit/ARCHITECTURE.md` — this gets inlined into every investigator's prompt.
+Store as `INVESTIGATOR_PATH`.
 
-### Step 4: Execute Batch 1 (Tier 1 Strategies)
+### Step 4: Execute Batches (5 Agents Per Batch)
 
-**CRITICAL — Parallel Foreground Agents:**
+**CRITICAL — Batching Rules:**
 
-Spawn ALL strategies within a batch in a **single response** using multiple Task() calls. This makes them run in parallel while keeping them as foreground agents (so they can write files with user permission). Do NOT use `run_in_background=true` — background agents cannot get permission to write files.
+- Spawn **max 5 investigators per response** to avoid prompt-too-long errors
+- Each batch is a single response with multiple Task() calls (agents run in parallel within a batch)
+- Wait for a batch to complete, then spawn the next batch
+- Do NOT use `run_in_background=true` — background agents cannot get permission to write files
+- Do NOT inline file contents into prompts — agents read files themselves via the Read tool
 
-For each strategy in Batch 1, include in a single response:
+**Execute Tier 1 strategies first, then Tier 2, then Tier 3.** Group into batches of 5 within each tier.
+
+**Spawn Pattern — each investigator gets this prompt:**
 
 ```
-// Spawn ALL batch strategies in a SINGLE response — they will run in parallel
 Task(
   subagent_type="general-purpose",
   prompt="
-    === HYPOTHESIS INVESTIGATOR INSTRUCTIONS ===
-    {FULL CONTENT of agents/hypothesis-investigator.md, inlined}
+    You are a hypothesis investigator for The Fortress security audit.
+
+    === STEP 1: READ YOUR INSTRUCTIONS ===
+    Read this file: {INVESTIGATOR_PATH} — Your full investigation methodology
+
+    === STEP 2: READ CONTEXT ===
+    1. Read .audit/ARCHITECTURE.md — Unified architectural understanding
+    2. Read the relevant context file(s) for deep analysis:
+       {List relevant .audit/context/NN-*.md files based on strategy.category}
+       The FULL ANALYSIS section (after CONDENSED_SUMMARY_END marker)
+       contains detailed code-level analysis.
+    3. Check .audit/findings/ for completed investigations.
+       If a prior finding covers your hypothesis's code path,
+       reference it rather than re-analyzing. Focus on what's NEW.
+
+    === STEP 3: READ KNOWLEDGE BASE ===
+    {List of relevant KB file paths from KB_MANIFEST Phase 4 section}
 
     === YOUR ASSIGNMENT ===
     STRATEGY TO INVESTIGATE:
-    {Full strategy entry from STRATEGIES.md}
+    {Full strategy entry from STRATEGIES.md — this is the only content
+     that gets pasted directly into the prompt}
 
     OUTPUT FILE: .audit/findings/{strategy_id}.md
-
-    === ARCHITECTURAL CONTEXT ===
-    {FULL CONTENT of .audit/ARCHITECTURE.md, inlined}
-
-    === RELEVANT CONTEXT ANALYSIS ===
-    For deep analysis of the focus area(s) related to this hypothesis,
-    read the relevant .audit/context/NN-*.md file(s). The FULL ANALYSIS
-    section (after the CONDENSED_SUMMARY_END marker) contains detailed
-    code-level analysis.
-
-    Focus area files:
-    {List relevant context files based on strategy.category}
-
-    === EXISTING FINDINGS ===
-    Check .audit/findings/ for any completed investigations.
-    If a prior finding already covers your hypothesis's code path,
-    reference it rather than re-analyzing. Focus on what's NEW.
-
-    === KNOWLEDGE BASE ===
-    {Relevant KB files based on strategy, from KB_MANIFEST Phase 4 section}
 
     Investigate this attack hypothesis.
     Determine: CONFIRMED / POTENTIAL / NOT VULNERABLE / NEEDS MANUAL REVIEW
@@ -114,9 +115,10 @@ Task(
 )
 ```
 
-All agents in the batch return when complete.
+After each batch completes, update STATE.json with per-strategy status and report progress:
+"Batch {N}/{total} complete. {confirmed} confirmed, {potential} potential so far."
 
-### Step 5: Strategy Supplement (After Batch 1 Only)
+### Step 5: Strategy Supplement (After First Tier 1 Batch Only)
 
 After Batch 1 completes, read all Batch 1 findings:
 
@@ -137,15 +139,7 @@ If no CONFIRMED or POTENTIAL in Batch 1, skip this step.
 
 ### Step 6: Execute Remaining Batches
 
-For each subsequent batch (Tier 2, then Tier 3, then supplemental):
-
-Same spawn pattern as Batch 1. Each investigator gets:
-- Investigator template (inlined)
-- Strategy to investigate
-- Architecture document (inlined)
-- Relevant context file paths
-- Existing findings reference
-- KB files
+Continue with remaining Tier 1 strategies (if more than 5), then Tier 2, Tier 3, and supplemental strategies. Same spawn pattern — max 5 per response, agents read their own files.
 
 Wait for each batch to complete before starting the next.
 

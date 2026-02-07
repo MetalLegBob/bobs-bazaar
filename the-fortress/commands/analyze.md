@@ -43,25 +43,21 @@ Read `.audit/STATE.json` to get:
 Read `.audit/KB_MANIFEST.md` to get:
 - Phase 1 agent KB file list (which knowledge base files each agent loads)
 
-### Step 2: Prepare Agent Prompts
+### Step 2: Locate Skill Files
 
-For each focus area, the orchestrator must:
+Find the file paths for agent templates and resources. These paths will be given to agents so they can read the files themselves (do NOT inline file contents into prompts — that makes prompts too large).
 
-1. **Read the agent template:** Read the context-auditor.md file from the skill directory
-   ```bash
-   find ~/.claude -name "context-auditor.md" -path "*/the-fortress/agents/*" 2>/dev/null | head -1
-   ```
+```bash
+find ~/.claude -name "context-auditor.md" -path "*/the-fortress/agents/*" 2>/dev/null | head -1
+find ~/.claude -name "economic-model-analyzer.md" -path "*/the-fortress/agents/*" 2>/dev/null | head -1
+find ~/.claude -name "focus-areas.md" -path "*/the-fortress/resources/*" 2>/dev/null | head -1
+```
 
-2. **Read focus-specific guidance:** Read focus-areas.md from the skill directory and extract the section for this focus area
-   ```bash
-   find ~/.claude -name "focus-areas.md" -path "*/the-fortress/resources/*" 2>/dev/null | head -1
-   ```
+Store these paths as `AUDITOR_PATH`, `ECON_AGENT_PATH`, `FOCUS_AREAS_PATH`.
 
-3. **Read KB files:** Read each knowledge base file listed in KB_MANIFEST.md Phase 1 section
+Also read `.audit/KB_MANIFEST.md` to get the Phase 1 KB file list (paths only — don't read the KB files yourself, agents will read them).
 
-4. **Inline everything into the prompt** — Agent prompts must be self-contained. The `@` file reference syntax does NOT work across Task() boundaries. Read every file and paste its content directly into the agent's prompt string.
-
-### Step 3: Spawn Context Auditors
+### Step 3: Spawn Context Auditors in Batches of 5
 
 **Focus Areas and Output Files:**
 
@@ -78,91 +74,97 @@ For each focus area, the orchestrator must:
 | 09 | Error Handling | `.audit/context/09-error-handling.md` |
 | 10 | Timing & Ordering | `.audit/context/10-timing-ordering.md` |
 
-For `quick` tier: Only spawn agents 01, 02, 04, 05, 06 (5 core focus areas).
+For `quick` tier: Only spawn agents 01, 02, 04, 05, 06 (5 core focus areas, single batch).
 
-**CRITICAL — Parallel Foreground Agents:**
+**CRITICAL — Batching Rules:**
 
-Spawn ALL agents in a **single response** using multiple Task() calls. This makes them run in parallel while keeping them as foreground agents (so they can write files with user permission). Do NOT use `run_in_background=true` — background agents cannot get permission to write files.
+- Spawn **max 5 agents per response** to avoid prompt-too-long errors
+- Each batch is a single response with multiple Task() calls (agents run in parallel within a batch)
+- Wait for a batch to complete, then spawn the next batch
+- Do NOT use `run_in_background=true` — background agents cannot get permission to write files
+- Do NOT inline file contents into prompts — agents read files themselves via the Read tool
 
-**Spawn Pattern:**
+**Batch 1:** Agents 01-05 (spawn all 5 in a single response)
+**Batch 2:** Agents 06-10 (spawn all 5 in a single response)
+**Batch 3:** Agent 11 economic model analyzer (only if `config.defi_economic_agent === true`)
 
-```
-// Spawn ALL of these in a SINGLE response message — they will run in parallel
-For each focus area:
-  Task(
-    subagent_type="general-purpose",
-    prompt="
-      === CONTEXT AUDITOR INSTRUCTIONS ===
-      {FULL CONTENT of agents/context-auditor.md, inlined}
-
-      === YOUR ASSIGNMENT ===
-      FOCUS: {focus_area_name}
-      OUTPUT FILE: {output_file_path}
-
-      === FOCUS-SPECIFIC GUIDANCE ===
-      {CONTENT of this focus area's section from resources/focus-areas.md, inlined}
-
-      === KNOWLEDGE BASE ===
-      Read these files before starting your analysis:
-      {List of KB file paths from KB_MANIFEST.md Phase 1 section}
-
-      === HOT SPOTS ===
-      Read .audit/HOT_SPOTS.md and find entries tagged with your focus area.
-      Analyze these locations FIRST with extra scrutiny.
-      Then expand to full codebase coverage.
-
-      === OUTPUT FORMAT ===
-      Your output file has TWO parts:
-      1. CONDENSED SUMMARY at the top (between <!-- CONDENSED_SUMMARY_START -->
-         and <!-- CONDENSED_SUMMARY_END --> markers). This is a structured
-         distillation of your full analysis — write it AFTER completing
-         your analysis, but place it at the TOP of the output file.
-         Must be self-contained so downstream phases can read it alone.
-      2. FULL ANALYSIS below the markers. Go as deep as needed — no limits.
-
-      Analyze the ENTIRE codebase through your specific lens.
-      Apply micro-first analysis (5 Whys, 5 Hows, First Principles).
-    "
-  )
-```
-
-**Conditional 11th Agent: Economic Model Analyzer**
-
-If `config.defi_economic_agent === true` AND tier is standard or deep, include this Task() call in the SAME response as the 10 context auditors:
+**Spawn Pattern — each agent gets this prompt (with its specific focus area):**
 
 ```
 Task(
   subagent_type="general-purpose",
   prompt="
-    === ECONOMIC MODEL ANALYZER INSTRUCTIONS ===
-    {FULL CONTENT of agents/economic-model-analyzer.md, inlined}
+    You are a context auditor for The Fortress security audit.
+
+    === STEP 1: READ YOUR INSTRUCTIONS ===
+    Read these files in order:
+    1. {AUDITOR_PATH} — Your full agent instructions and methodology
+    2. {FOCUS_AREAS_PATH} — Find and read the section for '{focus_area_name}'
+    3. .audit/HOT_SPOTS.md — Find entries tagged with your focus area
+
+    === STEP 2: READ KNOWLEDGE BASE ===
+    {List of KB file paths from KB_MANIFEST.md Phase 1 section}
+
+    === YOUR ASSIGNMENT ===
+    FOCUS: {focus_area_name}
+    OUTPUT FILE: {output_file_path}
+
+    Analyze the ENTIRE codebase through your specific lens.
+    Apply micro-first analysis (5 Whys, 5 Hows, First Principles).
+    Analyze hot-spotted locations FIRST with extra scrutiny, then expand
+    to full codebase coverage.
+
+    === OUTPUT FORMAT ===
+    Write your output file with TWO parts:
+    1. CONDENSED SUMMARY at the top (between <!-- CONDENSED_SUMMARY_START -->
+       and <!-- CONDENSED_SUMMARY_END --> markers). This is a structured
+       distillation of your full analysis — write it AFTER completing
+       your analysis, but place it at the TOP of the output file.
+       Must be self-contained so downstream phases can read it alone.
+    2. FULL ANALYSIS below the markers. Go as deep as needed — no limits.
+  "
+)
+```
+
+**Economic Model Analyzer (Batch 3, if applicable):**
+
+```
+Task(
+  subagent_type="general-purpose",
+  prompt="
+    You are an economic model analyzer for The Fortress security audit.
+
+    === STEP 1: READ YOUR INSTRUCTIONS ===
+    Read this file: {ECON_AGENT_PATH} — Your full agent instructions
+
+    === STEP 2: READ PROTOCOL PLAYBOOK ===
+    Read the matched protocol playbook from the knowledge base:
+    {path to matched protocol playbook from KB_MANIFEST}
 
     === YOUR ASSIGNMENT ===
     OUTPUT FILE: .audit/context/11-economic-model.md
 
-    === PROTOCOL PLAYBOOK ===
-    {CONTENT of matched protocol playbook from KB, inlined}
-
-    === OUTPUT FORMAT ===
-    Two-part output: CONDENSED SUMMARY at the top of the file (between
-    <!-- markers -->), then FULL ANALYSIS below. Write the summary AFTER
-    completing your analysis, but place it at the TOP. Go as deep as needed.
-
     Model the economic system: token flows, invariants, value extraction,
     flash loan impact, MEV sensitivity, incentive alignment.
+
+    === OUTPUT FORMAT ===
+    Two-part output: CONDENSED SUMMARY at top (<!-- markers -->),
+    FULL ANALYSIS below. Write summary AFTER analysis, place at TOP.
   "
 )
 ```
 
 ### Step 4: Collect Results
 
-All agents run in parallel and return when complete. Each agent writes its own output file directly. After all agents return, verify the context files were created:
+After each batch completes, verify the context files were created:
 
 ```bash
 ls -la .audit/context/*.md 2>/dev/null | wc -l
 ```
 
-Report results: "{N}/{total} context auditors completed successfully."
+Report progress after each batch: "Batch {N}/2 complete. {files_created}/{total} context files written."
+
+After all batches: "{N}/{total} context auditors completed successfully."
 
 ### Step 5: Update State
 
