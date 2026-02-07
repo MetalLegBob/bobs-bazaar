@@ -417,6 +417,15 @@ Use template: [templates/ARCHITECTURE.md](templates/ARCHITECTURE.md)
 2. Architectural weaknesses identified in Phase 2
 3. Focus-specific risks from Phase 1 context
 4. Protocol-specific attack surface from matched protocol playbooks
+5. **Novel/creative attack surfaces** — Phase 1 agents' "Novel Attack Surface Observations" sections. These are codebase-specific concerns that don't match any known EP. Prioritize these — they represent the attacks no scanner or pattern-matcher would find.
+
+**Novel strategy requirement:** At least 20% of generated strategies MUST be "Novel" (not directly derived from any EP in the knowledge base). Mark these with `**Historical Precedent:** Novel — derived from codebase-specific analysis`. These strategies come from:
+- Unique business logic interactions discovered in Phase 1
+- Unusual architectural patterns noted in Phase 2 synthesis
+- Creative "what if" scenarios from context auditors' novel observations
+- Emergent behaviors from instruction combinations specific to this protocol
+
+The knowledge base is a floor, not a ceiling. The most critical vulnerabilities in any codebase are often the ones nobody has documented before.
 
 **For each strategy, document:**
 - `ID`: Unique identifier (H001, H002, etc.)

@@ -79,7 +79,14 @@ If ANY step in the sequence is impossible (blocked by code), reclassify the find
 
 Then explain why each argument fails with specific code references. Rate your counterargument confidence: HIGH / MEDIUM / LOW. If you cannot refute the devil's advocate argument, reclassify as POTENTIAL.
 
-### Step 8: Document Everything
+### Step 8: Beyond the Hypothesis
+While investigating your assigned hypothesis, you may discover OTHER potential vulnerabilities in the same code. Don't ignore them.
+
+- If you find a concern unrelated to your hypothesis, document it in the "Related Findings" section as a **new hypothesis suggestion** for the orchestrator
+- Think creatively: what else could go wrong in this code beyond the specific attack you were assigned?
+- The most valuable findings are often discovered incidentally while investigating something else
+
+### Step 9: Document Everything
 Write comprehensive finding to your output file.
 
 ## Analysis Techniques
@@ -301,6 +308,10 @@ Calculate the CVSS score using these metrics:
 {Note if this relates to other hypotheses}
 - May combine with H{XXX} for {effect}
 - Similar to H{XXX} but {difference}
+
+## Incidental Discoveries
+{Other potential vulnerabilities noticed while investigating this hypothesis. These become new hypothesis suggestions for the orchestrator.}
+- {Discovery}: {Brief description of the concern and where in code} → Suggested new hypothesis: {what to investigate}
 
 ## Raw Investigation Notes
 {Detailed notes, code paths traced, etc.}

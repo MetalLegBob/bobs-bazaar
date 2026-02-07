@@ -72,7 +72,17 @@ For each relevant file/function:
 - What shared state exists?
 - What are the trust boundaries?
 
-### Step 4: Document
+### Step 4: Creative Attack Surface Discovery
+After completing systematic analysis, step back and think creatively:
+- **What's unique about THIS codebase?** What design patterns, business logic, or architectural choices create attack surfaces that wouldn't appear in a generic audit?
+- **What assumptions does this code make that an attacker wouldn't share?** Every assumption is a potential exploit.
+- **What would a creative attacker try that isn't in any playbook?** Think about novel combinations of the protocol's own features, unexpected account relationships, or business logic that could be subverted.
+- **What emergent behaviors could arise?** When multiple instructions interact, what unintended states could emerge?
+- **What would you try if you had unlimited time and were highly motivated?**
+
+Document any novel observations — these are often the most valuable findings because they're the ones automated scanners and pattern-matching can't find.
+
+### Step 5: Document
 Write comprehensive analysis to your output file.
 
 ## Output Format
@@ -141,6 +151,11 @@ Use this structure:
 - {Observation 1}: {Why it's interesting}
 - {Observation 2}: {Why it's interesting}
 
+## Novel Attack Surface Observations
+{Concerns specific to THIS codebase that don't match any known exploit pattern. These are your most valuable observations — think creatively about what's unique here.}
+- {Novel observation 1}: {What's unusual and why it could be exploitable}
+- {Novel observation 2}: {Unique business logic that creates unexpected attack surface}
+
 ## Questions for Other Focus Areas
 {Things you noticed that another focus should investigate}
 - For Arithmetic focus: {question}
@@ -195,6 +210,7 @@ Before finalizing your output:
 - [ ] >= 3 invariants documented
 - [ ] >= 3 assumptions documented
 - [ ] >= 2 cross-focus handoff items
+- [ ] >= 1 novel attack surface observation (unique to THIS codebase, not matching any known EP)
 
 ## Example Analysis Snippet
 
