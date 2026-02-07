@@ -97,13 +97,19 @@ This begins the audit by analyzing your codebase and generating a hot-spots map.
 
 ### Typical Workflow
 
-1. **`/the-fortress:scan`** — Analyze your codebase (~2 min)
-2. **`/the-fortress:analyze`** — Deploy auditors (~5-15 min depending on codebase size)
-3. **`/the-fortress:strategize`** — Generate attack strategies (~3-5 min)
-4. **`/the-fortress:investigate`** — Run investigations (~10-30 min depending on strategy count)
-5. **`/the-fortress:report`** — Generate final report (~3-5 min)
-6. *(Fix vulnerabilities)*
-7. **`/the-fortress:verify`** — Confirm fixes are effective
+Run `/clear` between each phase to give the next phase a fresh context window. This is critical for quality — each phase produces large outputs that would otherwise consume context.
+
+1. **`/the-fortress:scan`** — Analyze your codebase
+2. `/clear`
+3. **`/the-fortress:analyze`** — Deploy auditors
+4. `/clear`
+5. **`/the-fortress:strategize`** — Generate attack strategies
+6. `/clear`
+7. **`/the-fortress:investigate`** — Run investigations
+8. `/clear`
+9. **`/the-fortress:report`** — Generate final report
+10. *(Fix vulnerabilities)*
+11. **`/the-fortress:verify`** — Confirm fixes are effective
 
 Check progress anytime with **`/the-fortress:status`**.
 

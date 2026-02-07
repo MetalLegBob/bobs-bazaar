@@ -221,9 +221,9 @@ Update `.audit/PROGRESS.md` with strategize phase marked as completed.
 - {1-2 notable novel observations}
 
 ### Next Step:
-Run `/the-fortress:investigate` to investigate all {N} hypotheses in priority-ordered batches.
-Batch size: {config.batch_size} parallel investigators per batch.
-Estimated batches: {ceil(N / batch_size)}.
+Run **`/clear`** then **`/the-fortress:investigate`** to investigate all {N} hypotheses
+in priority-ordered batches of 5 parallel investigators.
+(`/clear` gives the next phase a fresh context window — critical for quality.)
 
 ---
 ```

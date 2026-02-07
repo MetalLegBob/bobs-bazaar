@@ -257,8 +257,9 @@ After Phase 1 + 1.5 is done, present to the user:
 - **Full Analysis** (remaining) — Complete deep analysis for Phase 4 investigators
 
 ### Next Step:
-Run `/the-fortress:strategize` to synthesize all context into a unified architecture document
-and generate {config.strategy_count} attack hypotheses.
+Run **`/clear`** then **`/the-fortress:strategize`** to synthesize all context into a unified
+architecture document and generate attack hypotheses.
+(`/clear` gives the next phase a fresh context window — critical for quality.)
 
 ---
 ```

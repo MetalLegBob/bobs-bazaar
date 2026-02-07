@@ -342,9 +342,8 @@ After all Phase 0 + 0.5 work is done, present this to the user:
 - Target strategies: {N}
 
 ### Next Step:
-Run `/the-fortress:analyze` to deploy {N} parallel context auditors.
-This will spawn specialized agents to analyze the codebase through different security lenses.
-Estimated time: depends on codebase size (typically 5-15 minutes for standard tier).
+Run **`/clear`** then **`/the-fortress:analyze`** to deploy {N} parallel context auditors.
+(`/clear` gives the next phase a fresh context window — critical for quality.)
 
 ---
 ```

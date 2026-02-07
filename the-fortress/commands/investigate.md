@@ -326,9 +326,10 @@ Update `.audit/PROGRESS.md` with investigate phase marked as completed.
 {Top 3-5 most significant CONFIRMED/POTENTIAL findings with brief descriptions}
 
 ### Next Step:
-Run `/the-fortress:report` to generate the final audit report.
+Run **`/clear`** then **`/the-fortress:report`** to generate the final audit report.
 The report will include combination analysis, attack trees, and severity calibration
 across all {total_findings} findings.
+(`/clear` gives the next phase a fresh context window — critical for quality.)
 
 ---
 ```

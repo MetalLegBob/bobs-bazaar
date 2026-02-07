@@ -105,8 +105,8 @@ Determine the next incomplete phase and display:
 
 ```markdown
 ### Next Step:
-Run `{next_command}` to {description of what it does}.
-{Any additional context about what to expect}
+Run **`/clear`** then **`{next_command}`** to {description of what it does}.
+(`/clear` gives the next phase a fresh context window — critical for quality.)
 ```
 
 ### If audit is fully complete:
